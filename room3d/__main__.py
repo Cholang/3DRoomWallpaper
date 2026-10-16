@@ -18,6 +18,8 @@ def main():
     ap.add_argument("--move-scale", type=float, help="frame mode: world cm per real cm of head movement")
     ap.add_argument("--start-z", type=float, help="frame mode: start distance in front of the room opening (cm)")
     ap.add_argument("--start-y", type=float, help="frame mode: start height relative to room centre (cm, negative = lower)")
+    ap.add_argument("vox", nargs="?", help="MagicaVoxel .vox file to show in the room (frame mode)")
+    ap.add_argument("--voxel-cm", type=float, help="size of one voxel in cm (default: auto-fit to the room)")
     ap.add_argument("--fov", type=float, help="frame mode: horizontal FOV in degrees (default: from screen size)")
     ap.add_argument("--debug", action="store_true", help="print estimated eye position (cm) twice a second")
     ap.add_argument("--background", action="store_true",
@@ -37,6 +39,8 @@ def main():
     if a.mode: cfg.mode = a.mode
     if a.move_scale is not None: cfg.move_scale = a.move_scale
     if a.fov is not None: cfg.frame_fov_deg = a.fov
+    if a.vox: cfg.vox_path = a.vox
+    if a.voxel_cm is not None: cfg.vox_voxel_cm = a.voxel_cm
     if a.start_z is not None or a.start_y is not None:
         x, y, z = cfg.start_cam_cm
         cfg.start_cam_cm = (x, y if a.start_y is None else a.start_y, z if a.start_z is None else a.start_z)

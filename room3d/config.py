@@ -26,3 +26,5 @@ class Config:
     move_scale: float = 2.0            # frame mode: world cm moved per real cm of head movement
     frame_fov_deg: float = 65.0        # frame mode: horizontal FOV; 0 = derive from screen size at default distance
     start_cam_cm: tuple = (0.0, -25.0, 10.0)   # frame mode: camera at the default pose (10cm in front of the room opening, 25cm below centre)
+    vox_path: str = ""                 # frame mode: MagicaVoxel .vox model shown in the room (replaces the boxes)
+    vox_voxel_cm: float = 0.0          # size of one voxel in cm; 0 = auto-fit to the room

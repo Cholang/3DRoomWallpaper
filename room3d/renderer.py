@@ -1,7 +1,7 @@
+import math
+
 import moderngl
 import numpy as np
-
-import math
 
 from .projection import frame_camera, off_axis_projection, view_matrix
 from .scene import build_scene, build_world_scene
@@ -20,6 +20,7 @@ void main() {
 FRAG = """
 #version 330
 uniform vec3 eye;
+uniform float grid;
 in vec3 v_pos; in vec3 v_normal; in vec3 v_color;
 out vec4 frag;
 void main() {
@@ -28,7 +29,7 @@ void main() {
     vec3 an = abs(n);
     vec2 g = an.x > 0.5 ? v_pos.yz : (an.y > 0.5 ? v_pos.xz : v_pos.xy);
     vec2 cell = abs(fract(g / 10.0 - 0.5) - 0.5) / fwidth(g / 10.0);
-    float line = 1.0 - min(min(cell.x, cell.y), 1.0);
+    float line = (1.0 - min(min(cell.x, cell.y), 1.0)) * grid;
     vec3 light_pos = vec3(0.0, 20.0, 30.0);
     vec3 l = normalize(light_pos - v_pos);
     float diff = 0.45 + 0.55 * max(dot(n, l), 0.0);
@@ -53,10 +54,22 @@ class Renderer:
         if cfg.mode == "window":
             data = build_scene(self.half_w * 2, self.half_h * 2, cfg.room_depth_cm)
         else:
-            data = build_world_scene()
-        self.vbo = self.ctx.buffer(data.tobytes())
-        self.vao = self.ctx.vertex_array(self.prog, [(self.vbo, "3f 3f 3f", "in_pos", "in_normal", "in_color")])
+            data = build_world_scene(props=not cfg.vox_path)
+        self.vao = self._vao(data)
+        self.model_vao = None
+        if cfg.mode != "window" and cfg.vox_path:
+            from .scene import place_vox_model
+            from .vox import load_vox
+            pos, colors = load_vox(cfg.vox_path)
+            mesh, voxel_cm = place_vox_model(pos, colors, cfg.vox_voxel_cm)
+            self.model_vao = self._vao(mesh)
+            print(f"[vox] {cfg.vox_path}: {len(pos)} voxels, {len(mesh) // 3} triangles, "
+                  f"voxel = {voxel_cm:.2f} cm", flush=True)
         self.ctx.viewport = (0, 0, width_px, height_px)
+
+    def _vao(self, data):
+        vbo = self.ctx.buffer(data.tobytes())
+        return self.ctx.vertex_array(self.prog, [(vbo, "3f 3f 3f", "in_pos", "in_normal", "in_color")])
 
     def draw(self, eye, zoom=1.0):
         cfg = self.cfg
@@ -74,4 +87,8 @@ class Renderer:
         self.prog["mvp"].write(mvp.T.astype("f4").tobytes())  # numpy row-major -> GL column-major
         self.prog["eye"].value = tuple(float(v) for v in cam)
         self.ctx.clear(0.02, 0.02, 0.04)
+        self.prog["grid"].value = 1.0
         self.vao.render(moderngl.TRIANGLES)
+        if self.model_vao is not None:
+            self.prog["grid"].value = 0.0   # no tile grid on voxel models
+            self.model_vao.render(moderngl.TRIANGLES)

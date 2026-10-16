@@ -18,6 +18,11 @@ Logi 웹캠으로 얼굴을 추적해 눈의 위치(거리·각도)를 계산하
 - `2_웹캠으로_테스트.bat` – 얼굴 추적
 - `3_배경화면으로_실행.bat` – 바탕화면 적용
 
+## 복셀(.vox) 장면
+- `8_복셀_보기.bat` – 예제(`assets/sample_village.vox`)를 띄웁니다. MagicaVoxel `.vox` 파일을 이 bat 위로 끌어다 놓으면 그 파일을 엽니다.
+- 명령: `python -m room3d 파일.vox [--voxel-cm 5]` (기본은 방 크기에 자동으로 맞춤)
+- 예제 다시 만들기: `python tools/make_sample_vox.py`
+
 ## 수동 실행
 ```
 pip install -r requirements.txt

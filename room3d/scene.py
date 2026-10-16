@@ -43,13 +43,32 @@ def build_scene(width, height, depth):
     return np.concatenate(parts)
 
 
-def build_world_scene(width=220.0, height=140.0, depth=300.0):
+WORLD_ROOM = (220.0, 140.0, 300.0)  # width, height, depth (cm)
+
+
+def build_world_scene(width=WORLD_ROOM[0], height=WORLD_ROOM[1], depth=WORLD_ROOM[2], props=True):
     """Fixed, real-world-sized room (cm): x,y centred, z in [-depth, 0]."""
     floor = -height / 2
     parts = [box((0, 0, -depth / 2), (width, height, depth), (0.85, 0.82, 0.78), inside=True)]
+    if not props:
+        return parts[0]
     for x, z, s, hgt, col in [(-50, -130, 24, 90, (0.75, 0.35, 0.3)),
                               (60, -190, 30, 60, (0.3, 0.55, 0.75)),
                               (0, -270, 36, 100, (0.45, 0.7, 0.4))]:
         parts.append(box((x, floor + hgt / 2, z), (s, hgt, s), col))
     parts.append(box((15, -5, -80), (20, 20, 20), (0.95, 0.75, 0.25)))
     return np.concatenate(parts)
+
+
+def place_vox_model(pos, colors, voxel_cm=0.0, room=WORLD_ROOM, fill=(0.8, 0.8, 0.6)):
+    """Mesh a voxel model, scaled to fit the room (unless voxel_cm > 0), centred in x,
+    standing on the floor, centred in depth."""
+    from .vox import voxel_mesh
+    ext = pos.max(0) - pos.min(0) + 1
+    if voxel_cm <= 0:
+        voxel_cm = float(min(fill[0] * room[0] / ext[0], fill[1] * room[1] / ext[1], fill[2] * room[2] / ext[2]))
+    lo = pos.min(0)
+    offset = (-(lo[0] + ext[0] / 2) * voxel_cm,
+              -room[1] / 2 - lo[1] * voxel_cm,
+              -room[2] / 2 - (lo[2] + ext[2] / 2) * voxel_cm)
+    return voxel_mesh(pos, colors, voxel_cm, offset), voxel_cm
