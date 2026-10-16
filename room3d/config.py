@@ -22,3 +22,7 @@ class Config:
     parallax_gain: float = 1.0         # >1 exaggerates the effect
     lost_face_return_s: float = 1.5    # time to ease back to default pose
     approach_zoom: float = 0.0         # experimental hack; 0 = pure window physics (default)
+    mode: str = "frame"                # "frame": screen = camera frame glued to your face; "window": fixed glass window
+    move_scale: float = 2.0            # frame mode: world cm moved per real cm of head movement
+    frame_fov_deg: float = 0.0         # frame mode: horizontal FOV; 0 = derive from screen size at default distance
+    start_cam_cm: tuple = (0.0, 0.0, -40.0)  # frame mode: camera position in the room at the default pose

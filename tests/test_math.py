@@ -57,3 +57,22 @@ def test_one_euro_converges():
     for i in range(200):
         v = f(10.0, i * 0.016)
     assert math.isclose(v, 10.0, abs_tol=1e-3)
+
+
+def test_frame_mode_far_object_grows_when_head_moves_closer_and_fov_is_fixed():
+    from room3d.projection import frame_camera
+    rest = (0.0, 0.0, 60.0)
+    start = (0.0, 0.0, -40.0)
+
+    def width_pct(eye_z):
+        mvp, _ = frame_camera((0, 0, eye_z), rest, 17.25, 1.6, 2.0, start)
+        pts = []
+        for x in (-18, 18):  # a 36 cm wide object at z = -270
+            p = mvp @ np.array([x, 0, -270, 1.0])
+            pts.append(p[0] / p[3])
+        return abs(pts[1] - pts[0]) / 2 * 100
+
+    assert width_pct(30) > width_pct(60) * 1.2     # approaching makes it clearly bigger
+    assert width_pct(90) < width_pct(60)            # leaning back makes it smaller
+    mvp, cam = frame_camera((0, 0, 60), rest, 17.25, 1.6, 2.0, start)
+    assert np.allclose(cam, start)                  # rest pose = start camera

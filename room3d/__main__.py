@@ -14,6 +14,9 @@ def main():
     ap.add_argument("--mouse", action="store_true", help="use the mouse instead of the webcam")
     ap.add_argument("--camera", type=int, default=0)
     ap.add_argument("--approach-zoom", type=float, help="experimental; 0 = pure window physics (default)")
+    ap.add_argument("--mode", choices=["frame", "window"], help="frame (default): screen is a camera frame on your face; window: fixed glass window")
+    ap.add_argument("--move-scale", type=float, help="frame mode: world cm per real cm of head movement")
+    ap.add_argument("--fov", type=float, help="frame mode: horizontal FOV in degrees (default: from screen size)")
     ap.add_argument("--debug", action="store_true", help="print estimated eye position (cm) twice a second")
     ap.add_argument("--background", action="store_true",
                     help="fallback: full-screen window kept behind all other windows (hides icons)")
@@ -29,6 +32,9 @@ def main():
     cfg = Config(camera_index=a.camera)
     if a.screen_width_cm: cfg.screen_width_cm = a.screen_width_cm
     if a.hfov: cfg.hfov_deg = a.hfov
+    if a.mode: cfg.mode = a.mode
+    if a.move_scale is not None: cfg.move_scale = a.move_scale
+    if a.fov is not None: cfg.frame_fov_deg = a.fov
     if a.approach_zoom is not None: cfg.approach_zoom = a.approach_zoom
     if a.cam_offset_cm is not None: cfg.cam_offset_cm = a.cam_offset_cm
 
@@ -59,7 +65,7 @@ def main():
             print("Could not attach to desktop (Windows only).", file=sys.stderr)
 
     from .renderer import Renderer
-    r = Renderer(size[0], size[1], cfg.screen_width_cm, cfg.room_depth_cm)
+    r = Renderer(size[0], size[1], cfg)
 
     tracker = None
     if not a.mouse:
@@ -69,11 +75,14 @@ def main():
 
     clock = pygame.time.Clock()
     last_dbg = 0.0
+    mouse_z = cfg.default_eye_cm[2]
     running = True
     while running:
         for e in pygame.event.get():
             if e.type == pygame.QUIT or (e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE):
                 running = False
+            if e.type == pygame.MOUSEWHEEL:   # mouse mode: wheel = move head closer/farther
+                mouse_z = max(15.0, min(120.0, mouse_z - e.y * 3))
         if tracker:
             eye = tracker.latest()
         else:
@@ -83,7 +92,7 @@ def main():
             else:
                 mx, my = pygame.mouse.get_pos()
             eye = ((mx / size[0] - 0.5) * 2 * r.half_w, (0.5 - my / size[1]) * 2 * r.half_h,
-                   cfg.default_eye_cm[2])
+                   mouse_z)
         if a.debug and time.time() - last_dbg > 0.5:
             last_dbg = time.time()
             print(f"eye x={eye[0]:6.1f} y={eye[1]:6.1f} z(distance)={eye[2]:6.1f} cm | "

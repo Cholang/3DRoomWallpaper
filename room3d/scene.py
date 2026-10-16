@@ -41,3 +41,15 @@ def build_scene(width, height, depth):
         parts.append(box((x, floor + hgt / 2, z), (s, hgt, s), col))
     parts.append(box((width * 0.08, height * 0.05, 12), (9, 9, 9), (0.95, 0.75, 0.25)))
     return np.concatenate(parts)
+
+
+def build_world_scene(width=220.0, height=140.0, depth=300.0):
+    """Fixed, real-world-sized room (cm): x,y centred, z in [-depth, 0]."""
+    floor = -height / 2
+    parts = [box((0, 0, -depth / 2), (width, height, depth), (0.85, 0.82, 0.78), inside=True)]
+    for x, z, s, hgt, col in [(-50, -130, 24, 90, (0.75, 0.35, 0.3)),
+                              (60, -190, 30, 60, (0.3, 0.55, 0.75)),
+                              (0, -270, 36, 100, (0.45, 0.7, 0.4))]:
+        parts.append(box((x, floor + hgt / 2, z), (s, hgt, s), col))
+    parts.append(box((15, -5, -80), (20, 20, 20), (0.95, 0.75, 0.25)))
+    return np.concatenate(parts)

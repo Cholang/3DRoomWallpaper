@@ -1,8 +1,10 @@
 import moderngl
 import numpy as np
 
-from .projection import off_axis_projection, view_matrix
-from .scene import build_scene
+import math
+
+from .projection import frame_camera, off_axis_projection, view_matrix
+from .scene import build_scene, build_world_scene
 
 VERT = """
 #version 330
@@ -40,23 +42,36 @@ void main() {
 
 
 class Renderer:
-    def __init__(self, width_px, height_px, screen_w_cm, room_depth_cm):
+    def __init__(self, width_px, height_px, cfg):
+        self.cfg = cfg
+        self.aspect = width_px / height_px
         self.ctx = moderngl.create_context()
         self.ctx.enable(moderngl.DEPTH_TEST | moderngl.CULL_FACE)
         self.prog = self.ctx.program(vertex_shader=VERT, fragment_shader=FRAG)
-        self.half_w = screen_w_cm / 2
+        self.half_w = cfg.screen_width_cm / 2
         self.half_h = self.half_w * height_px / width_px
-        data = build_scene(self.half_w * 2, self.half_h * 2, room_depth_cm)
+        if cfg.mode == "window":
+            data = build_scene(self.half_w * 2, self.half_h * 2, cfg.room_depth_cm)
+        else:
+            data = build_world_scene()
         self.vbo = self.ctx.buffer(data.tobytes())
         self.vao = self.ctx.vertex_array(self.prog, [(self.vbo, "3f 3f 3f", "in_pos", "in_normal", "in_color")])
         self.ctx.viewport = (0, 0, width_px, height_px)
 
     def draw(self, eye, zoom=1.0):
-        """zoom: scale factor (<=1) applied to the virtual window, so that approaching the
-        screen magnifies the scene (fixed-FOV camera feel) instead of shrinking far objects."""
-        proj = off_axis_projection(eye, self.half_w * zoom, self.half_h * zoom, near=1.0, far=1000.0)
-        mvp = proj @ view_matrix(eye)
+        cfg = self.cfg
+        if cfg.mode == "window":
+            # Fixed glass window: off-axis frustum through the screen rectangle.
+            # zoom: legacy experimental magnification (0 exponent = off).
+            proj = off_axis_projection(eye, self.half_w * zoom, self.half_h * zoom, near=1.0, far=1000.0)
+            mvp, cam = proj @ view_matrix(eye), eye
+        else:
+            half_w = self.half_w
+            rest = cfg.default_eye_cm
+            if cfg.frame_fov_deg > 0:  # override the screen-derived FOV
+                half_w = rest[2] * math.tan(math.radians(cfg.frame_fov_deg) / 2)
+            mvp, cam = frame_camera(eye, rest, half_w, self.aspect, cfg.move_scale, cfg.start_cam_cm)
         self.prog["mvp"].write(mvp.T.astype("f4").tobytes())  # numpy row-major -> GL column-major
-        self.prog["eye"].value = tuple(float(v) for v in eye)
+        self.prog["eye"].value = tuple(float(v) for v in cam)
         self.ctx.clear(0.02, 0.02, 0.04)
         self.vao.render(moderngl.TRIANGLES)

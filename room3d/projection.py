@@ -38,3 +38,19 @@ def project(point, eye, half_w, half_h, near=1.0, far=1000.0):
     mvp = off_axis_projection(eye, half_w, half_h, near, far) @ view_matrix(eye)
     p = mvp @ np.append(np.asarray(point, dtype=np.float64), 1.0)
     return p[:3] / p[3]
+
+
+def frame_camera(eye, rest_eye, half_w, aspect, move_scale, start, near=1.0, far=2000.0):
+    """"Camera frame glued to the face" model.
+
+    The frame keeps a fixed field of view (the screen as seen from `rest_eye`), and the
+    world is fixed. Moving the head by d moves the virtual camera by move_scale * d.
+    Returns (mvp, camera_position).
+    """
+    rest_eye = np.asarray(rest_eye, dtype=np.float64)
+    tan_half = half_w / rest_eye[2]
+    r = near * tan_half
+    t = r / aspect
+    cam = np.asarray(start, dtype=np.float64) + move_scale * (np.asarray(eye, dtype=np.float64) - rest_eye)
+    cam[2] = min(cam[2], -2.0)  # never leave through the front opening
+    return frustum(-r, r, -t, t, near, far) @ view_matrix(cam), cam
