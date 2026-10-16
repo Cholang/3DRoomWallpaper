@@ -51,8 +51,10 @@ class Renderer:
         self.vao = self.ctx.vertex_array(self.prog, [(self.vbo, "3f 3f 3f", "in_pos", "in_normal", "in_color")])
         self.ctx.viewport = (0, 0, width_px, height_px)
 
-    def draw(self, eye):
-        proj = off_axis_projection(eye, self.half_w, self.half_h, near=1.0, far=1000.0)
+    def draw(self, eye, zoom=1.0):
+        """zoom: scale factor (<=1) applied to the virtual window, so that approaching the
+        screen magnifies the scene (fixed-FOV camera feel) instead of shrinking far objects."""
+        proj = off_axis_projection(eye, self.half_w * zoom, self.half_h * zoom, near=1.0, far=1000.0)
         mvp = proj @ view_matrix(eye)
         self.prog["mvp"].write(mvp.T.astype("f4").tobytes())  # numpy row-major -> GL column-major
         self.prog["eye"].value = tuple(float(v) for v in eye)

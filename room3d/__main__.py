@@ -13,6 +13,7 @@ def main():
     ap.add_argument("--windowed", action="store_true", help="1280x720 window for testing")
     ap.add_argument("--mouse", action="store_true", help="use the mouse instead of the webcam")
     ap.add_argument("--camera", type=int, default=0)
+    ap.add_argument("--approach-zoom", type=float, help="0 = pure window physics, 1 = grow when closer (default)")
     ap.add_argument("--debug", action="store_true", help="print estimated eye position (cm) twice a second")
     ap.add_argument("--background", action="store_true",
                     help="fallback: full-screen window kept behind all other windows (hides icons)")
@@ -28,6 +29,7 @@ def main():
     cfg = Config(camera_index=a.camera)
     if a.screen_width_cm: cfg.screen_width_cm = a.screen_width_cm
     if a.hfov: cfg.hfov_deg = a.hfov
+    if a.approach_zoom is not None: cfg.approach_zoom = a.approach_zoom
     if a.cam_offset_cm is not None: cfg.cam_offset_cm = a.cam_offset_cm
 
     if sys.platform == "win32":  # report real pixels on scaled (e.g. 125%) displays
@@ -87,7 +89,9 @@ def main():
             print(f"eye x={eye[0]:6.1f} y={eye[1]:6.1f} z(distance)={eye[2]:6.1f} cm | "
                   f"screen={r.half_w * 2:.1f}x{r.half_h * 2:.1f} cm", flush=True)
         g = cfg.parallax_gain
-        r.draw((eye[0] * g, eye[1] * g, eye[2]))
+        ref = cfg.default_eye_cm[2]
+        zoom = min(1.0, eye[2] / ref) ** cfg.approach_zoom   # only magnify when closer than the default distance
+        r.draw((eye[0] * g, eye[1] * g, eye[2]), zoom)
         pygame.display.flip()
         clock.tick(60)
     if tracker:
