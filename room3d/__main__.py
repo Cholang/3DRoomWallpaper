@@ -32,7 +32,9 @@ def main():
 
     if a.wallpaper:
         from .wallpaper import attach_to_desktop
-        if not attach_to_desktop(pygame.display.get_wm_info()["window"]):
+        mode = attach_to_desktop(pygame.display.get_wm_info()["window"])
+        print(f"[wallpaper] attach: {mode or 'FAILED'}")
+        if not mode:
             print("Could not attach to desktop (Windows only).", file=sys.stderr)
 
     from .renderer import Renderer
@@ -53,7 +55,11 @@ def main():
         if tracker:
             eye = tracker.latest()
         else:
-            mx, my = pygame.mouse.get_pos()
+            if a.wallpaper:
+                from .wallpaper import cursor_pos
+                mx, my = cursor_pos()
+            else:
+                mx, my = pygame.mouse.get_pos()
             eye = ((mx / size[0] - 0.5) * 2 * r.half_w, (0.5 - my / size[1]) * 2 * r.half_h,
                    cfg.default_eye_cm[2])
         g = cfg.parallax_gain
