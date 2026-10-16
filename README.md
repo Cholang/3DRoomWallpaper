@@ -12,7 +12,13 @@ Logi 웹캠으로 얼굴을 추적해 눈의 위치(거리·각도)를 계산하
 5. `renderer.py` / `scene.py` – moderngl 로 방(격자 벽, 기둥, 화면 밖으로 튀어나오는 큐브)을 그립니다.
 6. `wallpaper.py` – 창을 WorkerW 에 붙여 바탕화면 아이콘 뒤에 표시합니다.
 
-## 실행
+## 바로 실행 (Windows, 더블클릭)
+저장소를 ZIP 으로 받아 풀고, Python 3.10~3.12 가 설치되어 있으면 아래 파일을 더블클릭하세요. 첫 실행 때 자동으로 환경을 설치합니다.
+- `1_마우스로_테스트.bat` – 웹캠 없이 마우스로 효과 확인
+- `2_웹캠으로_테스트.bat` – 얼굴 추적
+- `3_배경화면으로_실행.bat` – 바탕화면 적용
+
+## 수동 실행
 ```
 pip install -r requirements.txt
 python -m room3d --windowed --mouse     # 웹캠 없이 마우스로 테스트
