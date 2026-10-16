@@ -105,3 +105,23 @@ def cursor_pos():
     pt = wintypes.POINT()
     ctypes.windll.user32.GetCursorPos(ctypes.byref(pt))
     return pt.x, pt.y
+
+
+def make_background(hwnd: int) -> bool:
+    """Fallback for when parenting into the desktop does not render (e.g. Win11 24H2).
+
+    A borderless full-screen window kept at the very bottom of the z-order, hidden from the
+    taskbar and never activated by clicks. Desktop icons are covered by it.
+    """
+    if sys.platform != "win32":
+        return False
+    user32 = ctypes.windll.user32
+    _setup(user32)
+    GWL_EXSTYLE, WS_EX_TOOLWINDOW, WS_EX_NOACTIVATE = -20, 0x00000080, 0x08000000
+    user32.GetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int]
+    h = wintypes.HWND(hwnd)
+    ex = user32.GetWindowLongW(h, GWL_EXSTYLE) | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE
+    user32.SetWindowLongW(h, GWL_EXSTYLE, ex)
+    w, ht = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+    user32.SetWindowPos(h, wintypes.HWND(1), 0, 0, w, ht, SWP_NOACTIVATE | SWP_SHOWWINDOW)  # HWND_BOTTOM
+    return True

@@ -13,6 +13,8 @@ def main():
     ap.add_argument("--windowed", action="store_true", help="1280x720 window for testing")
     ap.add_argument("--mouse", action="store_true", help="use the mouse instead of the webcam")
     ap.add_argument("--camera", type=int, default=0)
+    ap.add_argument("--background", action="store_true",
+                    help="fallback: full-screen window kept behind all other windows (hides icons)")
     ap.add_argument("--parent", choices=["progman", "workerw"], default="progman",
                     help="wallpaper debugging: which window to parent into (Win11 24H2)")
     ap.add_argument("--zorder", choices=["auto", "top", "bottom"], default="auto",
@@ -40,6 +42,10 @@ def main():
     pygame.display.set_mode(size, flags, vsync=1)
     pygame.display.set_caption("3D Room Wallpaper")
 
+    if a.background:
+        from .wallpaper import make_background
+        print("[background] ok" if make_background(pygame.display.get_wm_info()["window"])
+              else "[background] FAILED", flush=True)
     if a.wallpaper:
         from .wallpaper import attach_to_desktop, dump_tree
         hwnd = pygame.display.get_wm_info()["window"]
@@ -67,7 +73,7 @@ def main():
         if tracker:
             eye = tracker.latest()
         else:
-            if a.wallpaper:
+            if a.wallpaper or a.background:
                 from .wallpaper import cursor_pos
                 mx, my = cursor_pos()
             else:
