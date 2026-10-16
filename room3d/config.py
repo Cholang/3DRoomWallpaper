@@ -24,5 +24,5 @@ class Config:
     approach_zoom: float = 0.0         # experimental hack; 0 = pure window physics (default)
     mode: str = "frame"                # "frame": screen = camera frame glued to your face; "window": fixed glass window
     move_scale: float = 2.0            # frame mode: world cm moved per real cm of head movement
-    frame_fov_deg: float = 0.0         # frame mode: horizontal FOV; 0 = derive from screen size at default distance
-    start_cam_cm: tuple = (0.0, -25.0, 100.0)  # frame mode: camera at the default pose (1m in front of the room opening, 25cm below centre)
+    frame_fov_deg: float = 65.0        # frame mode: horizontal FOV; 0 = derive from screen size at default distance
+    start_cam_cm: tuple = (0.0, -25.0, 10.0)   # frame mode: camera at the default pose (10cm in front of the room opening, 25cm below centre)
