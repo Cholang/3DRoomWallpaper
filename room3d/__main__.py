@@ -13,6 +13,8 @@ def main():
     ap.add_argument("--windowed", action="store_true", help="1280x720 window for testing")
     ap.add_argument("--mouse", action="store_true", help="use the mouse instead of the webcam")
     ap.add_argument("--camera", type=int, default=0)
+    ap.add_argument("--parent", choices=["progman", "workerw"], default="progman",
+                    help="wallpaper debugging: which window to parent into (Win11 24H2)")
     ap.add_argument("--zorder", choices=["auto", "top", "bottom"], default="auto",
                     help="wallpaper debugging: where to put our window among Progman children")
     ap.add_argument("--screen-width-cm", type=float)
@@ -41,7 +43,7 @@ def main():
     if a.wallpaper:
         from .wallpaper import attach_to_desktop, dump_tree
         hwnd = pygame.display.get_wm_info()["window"]
-        mode = attach_to_desktop(hwnd, a.zorder)
+        mode = attach_to_desktop(hwnd, a.zorder, a.parent)
         print("\n".join(dump_tree(hwnd)))
         print(f"[wallpaper] attach: {mode or 'FAILED'}")
         if not mode:

@@ -19,7 +19,7 @@ def _setup(user32):
     user32.SetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_long]
 
 
-def attach_to_desktop(hwnd: int, zorder: str = "auto") -> str:
+def attach_to_desktop(hwnd: int, zorder: str = "auto", parent_mode: str = "progman") -> str:
     """Returns a short status string describing what happened ('' on failure)."""
     if sys.platform != "win32":
         return ""
@@ -52,6 +52,11 @@ def attach_to_desktop(hwnd: int, zorder: str = "auto") -> str:
         # (SHELLDLL_DefView): above the wallpaper WorkerW, below the icons.
         defview = user32.FindWindowExW(progman, None, "SHELLDLL_DefView", None)
         mode, parent, insert_after = "24H2", progman, defview or wintypes.HWND(0)  # 0 = HWND_TOP
+        if parent_mode == "workerw":
+            # Parent into the wallpaper WorkerW itself (the layer that draws the picture).
+            wchild = user32.FindWindowExW(progman, None, "WorkerW", None)
+            if wchild:
+                mode, parent, insert_after = "24H2-workerw", wchild, wintypes.HWND(0)
 
     user32.SetParent(hwnd, parent)
     style = user32.GetWindowLongW(hwnd, GWL_STYLE)
@@ -62,6 +67,8 @@ def attach_to_desktop(hwnd: int, zorder: str = "auto") -> str:
     elif zorder == "bottom":
         insert_after = wintypes.HWND(1)   # HWND_BOTTOM
     user32.SetWindowPos(hwnd, insert_after, 0, 0, w, h, SWP_NOACTIVATE | SWP_SHOWWINDOW)
+    user32.ShowWindow(hwnd, 5)  # SW_SHOW
+    user32.UpdateWindow(hwnd)
     return mode
 
 
