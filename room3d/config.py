@@ -4,7 +4,7 @@ from dataclasses import dataclass
 @dataclass
 class Config:
     # --- Physical setup (cm). Measure these once for best realism. ---
-    screen_width_cm: float = 59.8      # 27" 16:9 monitor
+    screen_width_cm: float = 34.5      # 16" 16:10 laptop panel (use --screen-width-cm to override)
     cam_offset_cm: float = 1.5         # webcam height above the top edge of the screen
     room_depth_cm: float = 120.0       # how far the room extends behind the screen
 
