@@ -46,10 +46,12 @@ def attach_to_desktop(hwnd: int) -> str:
         mode, parent, insert_after = "classic", workerw, None
     else:
         # Win11 24H2 layout: the wallpaper WorkerW is a child of Progman.
-        child = user32.FindWindowExW(progman, None, "WorkerW", None)
         if not progman:
             return ""
-        mode, parent, insert_after = "24H2", progman, child
+        # SetWindowPos places us *behind* hWndInsertAfter. Insert right behind the icon layer
+        # (SHELLDLL_DefView): above the wallpaper WorkerW, below the icons.
+        defview = user32.FindWindowExW(progman, None, "SHELLDLL_DefView", None)
+        mode, parent, insert_after = "24H2", progman, defview or wintypes.HWND(0)  # 0 = HWND_TOP
 
     user32.SetParent(hwnd, parent)
     style = user32.GetWindowLongW(hwnd, GWL_STYLE)
