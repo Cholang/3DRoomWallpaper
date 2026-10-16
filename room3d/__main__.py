@@ -13,7 +13,7 @@ def main():
     ap.add_argument("--windowed", action="store_true", help="1280x720 window for testing")
     ap.add_argument("--mouse", action="store_true", help="use the mouse instead of the webcam")
     ap.add_argument("--camera", type=int, default=0)
-    ap.add_argument("--approach-zoom", type=float, help="0 = pure window physics, 1 = grow when closer (default)")
+    ap.add_argument("--approach-zoom", type=float, help="experimental; 0 = pure window physics (default)")
     ap.add_argument("--debug", action="store_true", help="print estimated eye position (cm) twice a second")
     ap.add_argument("--background", action="store_true",
                     help="fallback: full-screen window kept behind all other windows (hides icons)")

@@ -21,4 +21,4 @@ class Config:
     smoothing_beta: float = 0.05       # higher = less lag on fast moves
     parallax_gain: float = 1.0         # >1 exaggerates the effect
     lost_face_return_s: float = 1.5    # time to ease back to default pose
-    approach_zoom: float = 1.0         # 0 = pure window physics; 1 = objects grow on screen as you approach
+    approach_zoom: float = 0.0         # experimental hack; 0 = pure window physics (default)
