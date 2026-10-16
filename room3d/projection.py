@@ -52,5 +52,4 @@ def frame_camera(eye, rest_eye, half_w, aspect, move_scale, start, near=1.0, far
     r = near * tan_half
     t = r / aspect
     cam = np.asarray(start, dtype=np.float64) + move_scale * (np.asarray(eye, dtype=np.float64) - rest_eye)
-    cam[2] = min(cam[2], -2.0)  # never leave through the front opening
     return frustum(-r, r, -t, t, near, far) @ view_matrix(cam), cam

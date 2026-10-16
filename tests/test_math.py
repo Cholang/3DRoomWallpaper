@@ -62,7 +62,7 @@ def test_one_euro_converges():
 def test_frame_mode_far_object_grows_when_head_moves_closer_and_fov_is_fixed():
     from room3d.projection import frame_camera
     rest = (0.0, 0.0, 60.0)
-    start = (0.0, 0.0, -40.0)
+    start = (0.0, 0.0, 60.0)
 
     def width_pct(eye_z):
         mvp, _ = frame_camera((0, 0, eye_z), rest, 17.25, 1.6, 2.0, start)

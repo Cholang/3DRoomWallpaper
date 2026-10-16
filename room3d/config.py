@@ -25,4 +25,4 @@ class Config:
     mode: str = "frame"                # "frame": screen = camera frame glued to your face; "window": fixed glass window
     move_scale: float = 2.0            # frame mode: world cm moved per real cm of head movement
     frame_fov_deg: float = 0.0         # frame mode: horizontal FOV; 0 = derive from screen size at default distance
-    start_cam_cm: tuple = (0.0, 0.0, -40.0)  # frame mode: camera position in the room at the default pose
+    start_cam_cm: tuple = (0.0, 0.0, 60.0)   # frame mode: camera at the default pose = original viewing distance in front of the room opening
