@@ -13,6 +13,7 @@ def main():
     ap.add_argument("--windowed", action="store_true", help="1280x720 window for testing")
     ap.add_argument("--mouse", action="store_true", help="use the mouse instead of the webcam")
     ap.add_argument("--camera", type=int, default=0)
+    ap.add_argument("--debug", action="store_true", help="print estimated eye position (cm) twice a second")
     ap.add_argument("--background", action="store_true",
                     help="fallback: full-screen window kept behind all other windows (hides icons)")
     ap.add_argument("--parent", choices=["progman", "workerw"], default="progman",
@@ -65,6 +66,7 @@ def main():
         tracker.start()
 
     clock = pygame.time.Clock()
+    last_dbg = 0.0
     running = True
     while running:
         for e in pygame.event.get():
@@ -80,6 +82,10 @@ def main():
                 mx, my = pygame.mouse.get_pos()
             eye = ((mx / size[0] - 0.5) * 2 * r.half_w, (0.5 - my / size[1]) * 2 * r.half_h,
                    cfg.default_eye_cm[2])
+        if a.debug and time.time() - last_dbg > 0.5:
+            last_dbg = time.time()
+            print(f"eye x={eye[0]:6.1f} y={eye[1]:6.1f} z(distance)={eye[2]:6.1f} cm | "
+                  f"screen={r.half_w * 2:.1f}x{r.half_h * 2:.1f} cm", flush=True)
         g = cfg.parallax_gain
         r.draw((eye[0] * g, eye[1] * g, eye[2]))
         pygame.display.flip()
