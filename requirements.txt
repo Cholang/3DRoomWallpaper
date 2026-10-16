@@ -1,0 +1,5 @@
+numpy>=1.26
+opencv-python>=4.9
+mediapipe>=0.10.9,<0.10.22
+moderngl>=5.10
+pygame>=2.5
