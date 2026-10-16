@@ -19,7 +19,7 @@ def _setup(user32):
     user32.SetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_long]
 
 
-def attach_to_desktop(hwnd: int) -> str:
+def attach_to_desktop(hwnd: int, zorder: str = "auto") -> str:
     """Returns a short status string describing what happened ('' on failure)."""
     if sys.platform != "win32":
         return ""
@@ -57,8 +57,40 @@ def attach_to_desktop(hwnd: int) -> str:
     style = user32.GetWindowLongW(hwnd, GWL_STYLE)
     style = (style & ~(WS_POPUP | WS_CAPTION | WS_THICKFRAME)) | WS_CHILD
     user32.SetWindowLongW(hwnd, GWL_STYLE, style)
+    if zorder == "top":
+        insert_after = wintypes.HWND(0)   # HWND_TOP: above everything inside the parent
+    elif zorder == "bottom":
+        insert_after = wintypes.HWND(1)   # HWND_BOTTOM
     user32.SetWindowPos(hwnd, insert_after, 0, 0, w, h, SWP_NOACTIVATE | SWP_SHOWWINDOW)
     return mode
+
+
+def dump_tree(hwnd: int):
+    """Describe Progman's children (top of z-order first) for debugging."""
+    user32 = ctypes.windll.user32
+    _setup(user32)
+    user32.GetWindow.argtypes = [wintypes.HWND, wintypes.UINT]
+    user32.GetWindow.restype = wintypes.HWND
+    me = wintypes.HWND(hwnd).value
+    lines = []
+
+    def info(h, indent):
+        buf = ctypes.create_unicode_buffer(64)
+        user32.GetClassNameW(h, buf, 64)
+        r = wintypes.RECT()
+        user32.GetWindowRect(h, ctypes.byref(r))
+        tag = "  <== OURS" if h == me else ""
+        lines.append(f"{'  ' * indent}{buf.value or '?'} hwnd={h} visible={bool(user32.IsWindowVisible(h))} "
+                     f"rect=({r.left},{r.top},{r.right},{r.bottom}){tag}")
+
+    progman = user32.FindWindowW("Progman", None)
+    lines.append("Progman children (top of z-order first):")
+    info(progman, 0)
+    c = user32.GetWindow(progman, 5)  # GW_CHILD
+    while c:
+        info(c, 1)
+        c = user32.GetWindow(c, 2)    # GW_HWNDNEXT
+    return lines
 
 
 def cursor_pos():
