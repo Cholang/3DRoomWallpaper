@@ -25,6 +25,12 @@ def main():
     if a.hfov: cfg.hfov_deg = a.hfov
     if a.cam_offset_cm is not None: cfg.cam_offset_cm = a.cam_offset_cm
 
+    if sys.platform == "win32":  # report real pixels on scaled (e.g. 125%) displays
+        import ctypes
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(2)
+        except Exception:
+            ctypes.windll.user32.SetProcessDPIAware()
     pygame.init()
     info = pygame.display.Info()
     size = (1280, 720) if a.windowed else (info.current_w, info.current_h)
