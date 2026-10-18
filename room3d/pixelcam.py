@@ -1,7 +1,7 @@
 """Live webcam rendered as pixel art.
 
 Run:  python -m room3d.pixelcam [--windowed] [--camera N]
-Keys: 1-4 palette | D dithering | [ ] pixel size | M mirror | ESC quit
+Keys: Space 3-2-1 photo | 1-4 palette | D dithering | [ ] pixel size | M mirror | H HUD | ESC quit
 """
 import argparse
 import sys
@@ -79,13 +79,29 @@ def _cover_crop(frame, aspect):
     return frame[y0:y0 + nh]
 
 
+PIXEL_STEPS = [160, 200, 250, 312, 390, 480]   # '[' / ']' walk through these
+
+
+def render_still(frame_bgr, filt_template, pixels, aspect):
+    """Process one photo with the current settings (fresh filter: no temporal state)."""
+    import cv2
+    ph = max(1, round(pixels / aspect))
+    small = cv2.cvtColor(cv2.resize(frame_bgr, (pixels, ph), interpolation=cv2.INTER_AREA),
+                         cv2.COLOR_BGR2RGB).astype(np.float32)
+    f = PixelArt(filt_template.palette, dither=filt_template.dither)
+    return f(small)
+
+
 def main():
     ap = argparse.ArgumentParser(description="Live webcam as pixel art")
     ap.add_argument("--windowed", action="store_true", help="1280x720 window instead of a full-screen-size window")
     ap.add_argument("--camera", type=int, default=0)
     ap.add_argument("--pixels", type=int, default=160, help="horizontal resolution of the pixel art (default 160)")
     ap.add_argument("--palette", choices=PALETTE_ORDER, default="DB32")
+    ap.add_argument("--out", default="captures", help="folder for snapshots (default: captures)")
     a = ap.parse_args()
+
+    import os
 
     import cv2
     import pygame
@@ -97,8 +113,8 @@ def main():
         except Exception:
             ctypes.windll.user32.SetProcessDPIAware()
     cap = cv2.VideoCapture(a.camera, cv2.CAP_DSHOW if sys.platform == "win32" else cv2.CAP_ANY)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     if not cap.isOpened():
         print("웹캠을 열 수 없습니다. 카메라가 켜져 있는지(Fn 키, 개인정보 설정) 확인하세요.", file=sys.stderr)
         sys.exit(1)
@@ -109,52 +125,114 @@ def main():
     screen = pygame.display.set_mode(size, 0 if a.windowed else pygame.NOFRAME)
     pygame.display.set_caption("Pixel Cam")
     aspect = size[0] / size[1]
+    font = pygame.font.SysFont("consolas,menlo,monospace", max(16, size[1] // 45))
+    big_font = pygame.font.SysFont("arial,helvetica,sans", size[1] // 3, bold=True)
 
     filt = PixelArt(a.palette)
-    pixels, mirror = a.pixels, True
-    print("키: 1~4 팔레트(DB32 / PICO-8 / GameBoy / Posterize) | D 디더링 | [ ] 픽셀 크기 | M 좌우반전 | ESC 종료",
-          flush=True)
+    pixels, mirror, show_hud = a.pixels, True, True
+    countdown_end = None      # time when the 3-2-1 countdown fires
+    still = None              # (raw_bgr) while showing a captured photo
+    still_art = None
+    flash_until = 0.0
+    print("키: Space 3-2-1 촬영 (촬영 화면에서 Space = 실시간으로 복귀) | 1~4 팔레트 | D 디더링 | "
+          "[ ] 픽셀 크기 | M 좌우반전 | H 정보 표시 | ESC 종료", flush=True)
+
+    def step_pixels(direction):
+        steps = sorted(set(PIXEL_STEPS + [pixels]))
+        i = steps.index(pixels) + direction
+        return steps[max(0, min(len(steps) - 1, i))]
+
+    def text(surface, msg, pos, f, color=(255, 255, 255)):
+        shadow = f.render(msg, True, (0, 0, 0))
+        surface.blit(shadow, (pos[0] + 2, pos[1] + 2))
+        surface.blit(f.render(msg, True, color), pos)
+
     clock = pygame.time.Clock()
-    last_title = 0.0
     running = True
+    frame = None
     while running:
+        settings_changed = False
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 running = False
             elif e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_ESCAPE:
                     running = False
+                elif e.key == pygame.K_SPACE:
+                    if still is not None:
+                        still = still_art = None           # back to live
+                        filt.reset()
+                    elif countdown_end is None:
+                        countdown_end = time.time() + 3.0
                 elif pygame.K_1 <= e.key <= pygame.K_4:
                     filt.palette = PALETTE_ORDER[e.key - pygame.K_1]
-                    filt.reset()
+                    settings_changed = True
                 elif e.key == pygame.K_d:
                     filt.dither = 0.0 if filt.dither else 24.0
-                elif e.key == pygame.K_LEFTBRACKET:
-                    pixels = min(480, int(pixels * 1.25))   # more pixels = smaller blocks
-                    filt.reset()
-                elif e.key == pygame.K_RIGHTBRACKET:
-                    pixels = max(40, int(pixels / 1.25))    # fewer pixels = bigger blocks
-                    filt.reset()
+                    settings_changed = True
+                elif e.key == pygame.K_LEFTBRACKET:        # more pixels = smaller blocks
+                    pixels = step_pixels(+1)
+                    settings_changed = True
+                elif e.key == pygame.K_RIGHTBRACKET:       # fewer pixels = bigger blocks
+                    pixels = step_pixels(-1)
+                    settings_changed = True
                 elif e.key == pygame.K_m:
                     mirror = not mirror
-        ok, frame = cap.read()
-        if not ok:
+                elif e.key == pygame.K_h:
+                    show_hud = not show_hud
+        if settings_changed:
+            filt.reset()
+            if still is not None:
+                still_art = render_still(still, filt, pixels, aspect)
+
+        ok, cam = cap.read()
+        if ok:
+            cam = _cover_crop(cam, aspect)
+            frame = np.ascontiguousarray(cam[:, ::-1]) if mirror else cam
+        if frame is None:
             time.sleep(0.02)
             continue
-        frame = _cover_crop(frame, aspect)
-        if mirror:
-            frame = frame[:, ::-1]
-        ph = max(1, round(pixels / aspect))
-        small = cv2.resize(frame, (pixels, ph), interpolation=cv2.INTER_AREA)
-        small = cv2.cvtColor(small, cv2.COLOR_BGR2RGB).astype(np.float32)
-        art = filt(small)
+
+        if countdown_end is not None and time.time() >= countdown_end:
+            countdown_end = None
+            still = frame.copy()
+            still_art = render_still(still, filt, pixels, aspect)
+            os.makedirs(a.out, exist_ok=True)
+            stamp = time.strftime("%Y%m%d_%H%M%S")
+            raw_path = os.path.join(a.out, f"{stamp}_raw.png")
+            art_path = os.path.join(a.out, f"{stamp}_pixel_{filt.palette}_{pixels}.png")
+            cv2.imwrite(raw_path, still)
+            big = cv2.resize(cv2.cvtColor(still_art, cv2.COLOR_RGB2BGR), size, interpolation=cv2.INTER_NEAREST)
+            cv2.imwrite(art_path, big)
+            print(f"저장: {raw_path} / {art_path}", flush=True)
+            flash_until = time.time() + 0.15
+
+        if still is not None:
+            art = still_art
+        else:
+            ph = max(1, round(pixels / aspect))
+            small = cv2.resize(frame, (pixels, ph), interpolation=cv2.INTER_AREA)
+            art = filt(cv2.cvtColor(small, cv2.COLOR_BGR2RGB).astype(np.float32))
         surf = pygame.surfarray.make_surface(art.swapaxes(0, 1))
         screen.blit(pygame.transform.scale(surf, size), (0, 0))   # nearest-neighbour upscale
+
+        if time.time() < flash_until:
+            screen.fill((255, 255, 255))
+        if countdown_end is not None:
+            n = str(int(countdown_end - time.time()) + 1)
+            w, h = big_font.size(n)
+            text(screen, n, ((size[0] - w) // 2, (size[1] - h) // 2), big_font)
+        if show_hud:
+            ph = max(1, round(pixels / aspect))
+            mode = "PHOTO (Space = live)" if still is not None else f"LIVE {clock.get_fps():.0f} fps"
+            lines = [f"{mode}",
+                     f"pixels {pixels} x {ph}   palette {filt.palette}   dither {'on' if filt.dither else 'off'}",
+                     "Space 3-2-1 photo | 1-4 palette | D dither | [ ] pixel size | M mirror | H hide | ESC quit"]
+            y = 10
+            for ln in lines:
+                text(screen, ln, (12, y), font)
+                y += font.get_linesize()
         pygame.display.flip()
-        if time.time() - last_title > 1.0:
-            last_title = time.time()
-            pygame.display.set_caption(f"Pixel Cam | {filt.palette} | {pixels}x{ph} | "
-                                       f"dither {'on' if filt.dither else 'off'} | {clock.get_fps():.0f} fps")
         clock.tick(30)
     cap.release()
     pygame.quit()

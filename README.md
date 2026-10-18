@@ -25,7 +25,8 @@ Logi 웹캠으로 얼굴을 추적해 눈의 위치(거리·각도)를 계산하
 
 ## 웹캠 픽셀 아트 (실험)
 - `9_웹캠_픽셀아트.bat` 또는 `python -m room3d.pixelcam [--windowed] [--pixels 160]`
-- 키: `1`~`4` 팔레트(DB32 / PICO-8 / GameBoy / Posterize), `D` 디더링, `[` `]` 픽셀 크기, `M` 좌우반전, `ESC` 종료
+- 키: `Space` 3-2-1 촬영(촬영 화면에서 다시 `Space` = 실시간), `1`~`4` 팔레트(DB32 / PICO-8 / GameBoy / Posterize), `D` 디더링, `[` `]` 픽셀 크기, `M` 좌우반전, `H` 정보 표시, `ESC` 종료
+- 촬영한 원본과 결과는 `captures/` 폴더에 저장됩니다(git 에는 올라가지 않음).
 
 ## 수동 실행
 ```
