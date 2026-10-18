@@ -23,6 +23,10 @@ Logi 웹캠으로 얼굴을 추적해 눈의 위치(거리·각도)를 계산하
 - 명령: `python -m room3d 파일.vox [--voxel-cm 5]` (기본은 방 크기에 자동으로 맞춤)
 - 예제 다시 만들기: `python tools/make_sample_vox.py`
 
+## 웹캠 픽셀 아트 (실험)
+- `9_웹캠_픽셀아트.bat` 또는 `python -m room3d.pixelcam [--windowed] [--pixels 160]`
+- 키: `1`~`4` 팔레트(DB32 / PICO-8 / GameBoy / Posterize), `D` 디더링, `[` `]` 픽셀 크기, `M` 좌우반전, `ESC` 종료
+
 ## 수동 실행
 ```
 pip install -r requirements.txt
